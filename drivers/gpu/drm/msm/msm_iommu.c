@@ -23,6 +23,20 @@ static int msm_fault_handler(struct iommu_domain *domain, struct device *dev,
 	return 0;
 }
 
+static int msm_iommu_attach(struct msm_mmu *mmu)
+{
+	struct msm_iommu *iommu = to_msm_iommu(mmu);
+
+#ifdef CONFIG_IOMMU_API
+	// Make SMMU aware that we are ready for attach
+	if (mmu->dev->of_node && of_property_read_bool(mmu->dev->of_node,
+				"iommu-defer-attach"))
+		mmu->dev->archdata.iommu = (void*) true;
+#endif
+
+	return iommu_attach_device(iommu->domain, mmu->dev);
+}
+
 static void msm_iommu_detach(struct msm_mmu *mmu)
 {
 	struct msm_iommu *iommu = to_msm_iommu(mmu);
