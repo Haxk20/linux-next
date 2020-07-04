@@ -29,11 +29,16 @@
 	/delete-node/ gpio-keys;
 
 	soc {
-
 		i2c@c175000 {
 			status = "okay";
-
-			/* Novatek touchscreen */
+			
+			novatek@62 {
+				compatible = "novatek,NVT-ts";
+	                	reg = <0x62>;
+	                	status = "okay";
+	
+	                	novatek,irq-gpio = <&tlmm 45 0x2002>;
+			};
 		};
 	};
 
