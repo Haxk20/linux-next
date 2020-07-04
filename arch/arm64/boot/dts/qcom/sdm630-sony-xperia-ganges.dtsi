@@ -36,9 +36,6 @@
 		status = "okay";
 
 		novatek,irq-gpio = <&tlmm 45 0x2002>;
-
-		/* MP */
-		novatek,mp-support-dt;
 	};
 };
 
