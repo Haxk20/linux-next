@@ -578,7 +578,15 @@ static int a5xx_hw_init(struct msm_gpu *gpu)
 		gpu_write(gpu, REG_A5XX_CP_ROQ_THRESHOLDS_1, 0x20100D0A);
 		gpu_write(gpu, REG_A5XX_PC_DBG_ECO_CNTL,
 			  (0x200 << 11 | 0x200 << 22));
-	} else {
+	} else if (adreno_is_a508(adreno_gpu)) { /* Also applies to a504-a506 */
+		gpu_write(gpu, REG_A5XX_CP_MEQ_THRESHOLDS, 0x20);
+		gpu_write(gpu, REG_A5XX_CP_MERCIU_SIZE, 0x400);
+		gpu_write(gpu, REG_A5XX_CP_ROQ_THRESHOLDS_2, 0x40000030);
+		gpu_write(gpu, REG_A5XX_CP_ROQ_THRESHOLDS_1, 0x20100D0A);
+		gpu_write(gpu, REG_A5XX_PC_DBG_ECO_CNTL, 
+			  (0x100 << 11 | 0x100 << 22));
+	}
+	else {
 		gpu_write(gpu, REG_A5XX_CP_MEQ_THRESHOLDS, 0x40);
 		if (adreno_is_a530(adreno_gpu))
 			gpu_write(gpu, REG_A5XX_CP_MERCIU_SIZE, 0x40);
@@ -704,7 +712,8 @@ static int a5xx_hw_init(struct msm_gpu *gpu)
 
 	a5xx_preempt_hw_init(gpu);
 
-	if (!adreno_is_a510(adreno_gpu))
+	/* A504/A505/A506/A510 (no ZAP) and A508/A509/A512 (w/ZAP) have no GPMU */
+	if (!adreno_is_a510(adreno_gpu) && !adreno_is_a508(adreno_gpu))
 		a5xx_gpmu_ucode_init(gpu);
 
 	ret = a5xx_ucode_init(gpu);
@@ -1108,7 +1117,7 @@ static int a5xx_pm_resume(struct msm_gpu *gpu)
 	if (ret)
 		return ret;
 
-	if (adreno_is_a510(adreno_gpu)) {
+	if (!(adreno_is_a540(adreno_gpu) || adreno_is_a530(adreno_gpu))) {
 		/* Halt the sp_input_clk at HM level */
 		gpu_write(gpu, REG_A5XX_RBBM_CLOCK_CNTL, 0x00000055);
 		a5xx_set_hwcg(gpu, true);
@@ -1148,8 +1157,8 @@ static int a5xx_pm_suspend(struct msm_gpu *gpu)
 	struct adreno_gpu *adreno_gpu = to_adreno_gpu(gpu);
 	u32 mask = 0xf;
 
-	/* A510 has 3 XIN ports in VBIF */
-	if (adreno_is_a510(adreno_gpu))
+	/* A504-506, A508 and A510 have 3 XIN ports in VBIF */
+	if (adreno_is_a510(adreno_gpu) || adreno_is_a508(adreno_gpu))
 		mask = 0x7;
 
 	/* Clear the VBIF pipe before shutting down */
@@ -1159,12 +1168,14 @@ static int a5xx_pm_suspend(struct msm_gpu *gpu)
 
 	gpu_write(gpu, REG_A5XX_VBIF_XIN_HALT_CTRL0, 0);
 
-	/*
-	 * Reset the VBIF before power collapse to avoid issue with FIFO
-	 * entries
-	 */
-	gpu_write(gpu, REG_A5XX_RBBM_BLOCK_SW_RESET_CMD, 0x003C0000);
-	gpu_write(gpu, REG_A5XX_RBBM_BLOCK_SW_RESET_CMD, 0x00000000);
+	if (adreno_is_a530(adreno_gpu) || adreno_is_a510(adreno_gpu)) {
+		/*
+		* Reset the VBIF before power collapse to avoid issue with FIFO
+		* entries
+		*/
+		gpu_write(gpu, REG_A5XX_RBBM_BLOCK_SW_RESET_CMD, 0x003C0000);
+		gpu_write(gpu, REG_A5XX_RBBM_BLOCK_SW_RESET_CMD, 0x00000000);
+	}
 
 	return msm_gpu_pm_suspend(gpu);
 }
