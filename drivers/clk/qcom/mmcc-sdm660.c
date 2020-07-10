@@ -27,7 +27,7 @@
 #include "reset.h"
 #include "gdsc.h"
 
-enum }
+enum {
 	P_XO,
 	P_DSI0PLL_BYTE,
 	P_DSI0PLL,
@@ -375,7 +375,7 @@ static struct clk_alpha_pll mmpll3 = {
 			.name = "mmpll3",
 			.parent_names = (const char *[]){ "xo" },
 			.num_parents = 1,
-			.ops = &clk_alpha_pll_slew_ops,
+			.ops = &clk_alpha_pll_ops,
 		},
 	},
 };
@@ -489,8 +489,7 @@ static struct clk_rcg2 ahb_clk_src = {
 	.hid_width = 5,
 	.parent_map = mmcc_xo_mmpll0_gpll0_gpll0_div_map,
 	.freq_tbl = ftbl_ahb_clk_src,
-	.current_freq = 40000000,
-	.enable_safe_config = true,
+	//.enable_safe_config = true,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "ahb_clk_src",
 		.parent_names = mmcc_xo_mmpll0_gpll0_gpll0_div,
@@ -603,7 +602,7 @@ static struct clk_rcg2 cpp_clk_src = {
 	.cmd_rcgr = 0x3640,
 	.mnd_width = 0,
 	.hid_width = 5,
-	.parent_map = mmcc_xo_dsibyte_map1,
+	.parent_map = mmcc_xo_dsibyte_map,
 	.freq_tbl = ftbl_cpp_clk_src,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "cpp_clk_src",
@@ -854,7 +853,7 @@ static struct clk_rcg2 esc0_clk_src = {
 		.name = "esc0_clk_src",
 		.parent_names = mmcc_xo_dsibyte,
 		.num_parents = 4,
-		.ops = &clk_esc_ops,
+		.ops = &clk_rcg2_ops,
 	},
 };
 
@@ -867,7 +866,7 @@ static struct clk_rcg2 esc1_clk_src = {
 		.name = "esc1_clk_src",
 		.parent_names = mmcc_xo_dsibyte,
 		.num_parents = 4,
-		.ops = &clk_esc_ops,
+		.ops = &clk_rcg2_ops,
 	},
 };
 
@@ -1082,12 +1081,12 @@ static struct clk_rcg2 vfe1_clk_src = {
 };
 
 static const struct freq_tbl ftbl_video_core_clk_src[] = {
-	F_SLEW(133333333, P_GPLL0, 4.5, 0, 0, FIXED_FREQ_SRC),
-	F_SLEW(269333333, P_MMPLL0, 3, 0, 0, FIXED_FREQ_SRC),
-	F_SLEW(320000000, P_MMPLL7, 3, 0, 0, FIXED_FREQ_SRC),
-	F_SLEW(404000000, P_MMPLL0, 2, 0, 0, FIXED_FREQ_SRC),
-	F_SLEW(441600000, P_MMPLL3, 2, 0, 0, 883200000),
-	F_SLEW(518400000, P_MMPLL3, 2, 0, 0, 1036800000),
+	F(133333333, P_GPLL0, 4.5, 0, 0),
+	F(269333333, P_MMPLL0, 3, 0, 0),
+	F(320000000, P_MMPLL7, 3, 0, 0),
+	F(404000000, P_MMPLL0, 2, 0, 0),
+	F(441600000, P_MMPLL3, 2, 0, 0),
+	F(518400000, P_MMPLL3, 2, 0, 0),
 	{ }
 };
 
@@ -1097,12 +1096,12 @@ static struct clk_rcg2 video_core_clk_src = {
 	.hid_width = 5,
 	.parent_map = mmcc_xo_mmpll0_mmpll8_mmpll3_mmpll6_gpll0_mmpll7_map,
 	.freq_tbl = ftbl_video_core_clk_src,
-	.flags = FORCE_ENABLE_RCG,
 	.clkr.hw.init = &(struct clk_init_data){
 		.name = "video_core_clk_src",
 		.parent_names = mmcc_xo_mmpll0_mmpll8_mmpll3_mmpll6_gpll0_mmpll7,
 		.num_parents = 8,
 		.ops = &clk_rcg2_ops,
+		.flags = CLK_IS_CRITICAL,
 	},
 };
 
@@ -1133,7 +1132,7 @@ static struct clk_branch mmss_bimc_smmu_ahb_clk = {
 			.parent_names = (const char *[]){
 				"ahb_clk_src",
 			},
-			.flags = CLK_ENABLE_HAND_OFF,
+			//.flags = CLK_ENABLE_HAND_OFF,
 			.num_parents = 1,
 			.ops = &clk_branch2_ops,
 		},
@@ -1150,7 +1149,7 @@ static struct clk_branch mmss_bimc_smmu_axi_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "mmss_bimc_smmu_axi_clk",
-			.flags = CLK_ENABLE_HAND_OFF,
+			//.flags = CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -1832,9 +1831,9 @@ static struct clk_branch mmss_camss_jpeg0_clk = {
 	},
 };
 
-static DEFINE_CLK_VOTER(mmss_camss_jpeg0_vote_clk, mmss_camss_jpeg0_clk, 0);
-static DEFINE_CLK_VOTER(mmss_camss_jpeg0_dma_vote_clk,
-					mmss_camss_jpeg0_clk, 0);
+// static DEFINE_CLK_VOTER(mmss_camss_jpeg0_vote_clk, mmss_camss_jpeg0_clk, 0);
+// static DEFINE_CLK_VOTER(mmss_camss_jpeg0_dma_vote_clk,
+// 					mmss_camss_jpeg0_clk, 0);
 
 static struct clk_branch mmss_camss_jpeg_ahb_clk = {
 	.halt_reg = 0x35b4,
@@ -2151,7 +2150,7 @@ static struct clk_branch mmss_mdss_ahb_clk = {
 			.parent_names = (const char *[]){
 				"ahb_clk_src",
 			},
-			.flags = CLK_ENABLE_HAND_OFF,
+			//.flags = CLK_ENABLE_HAND_OFF,
 			.num_parents = 1,
 			.ops = &clk_branch2_ops,
 		},
@@ -2473,7 +2472,7 @@ static struct clk_branch mmss_mdss_mdp_clk = {
 				"mdp_clk_src",
 			},
 			.num_parents = 1,
-			.flags = CLK_SET_RATE_PARENT | CLK_ENABLE_HAND_OFF,
+			.flags = CLK_SET_RATE_PARENT, //| CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2584,7 +2583,7 @@ static struct clk_branch mmss_misc_cxo_clk = {
 			.name = "mmss_misc_cxo_clk",
 			.parent_names = (const char *[]){ "xo_ao" },
 			.num_parents = 1,
-			.flags = CLK_ENABLE_HAND_OFF,
+			//.flags = CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2868,8 +2867,6 @@ static const struct of_device_id mmcc_660_match_table[] = {
 };
 MODULE_DEVICE_TABLE(of, mmcc_660_match_table);
 
-static struct platform_driver mmcc_voters_sdm660_driver;
-
 static int mmcc_660_probe(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -2909,7 +2906,7 @@ static int mmcc_660_probe(struct platform_device *pdev)
 
 	dev_info(&pdev->dev, "Registered MMSS clocks\n");
 
-	return platform_driver_register(&mmcc_voters_sdm660_driver);
+	return 0;
 }
 
 static struct platform_driver mmcc_660_driver = {
@@ -2921,64 +2918,11 @@ static struct platform_driver mmcc_660_driver = {
 };
 
 
-/* Voters */
-struct clk_hw *mmcc_voters_sdm660_hws[] = {
-	[MMSS_CAMSS_JPEG0_VOTE_CLK] = &mmss_camss_jpeg0_vote_clk.hw,
-	[MMSS_CAMSS_JPEG0_DMA_VOTE_CLK] = &mmss_camss_jpeg0_dma_vote_clk.hw,
-};
-
-static struct of_device_id mmcc_voters_sdm660_match_table[] = {
-	{ .compatible = "qcom,mmsscc-voters-sdm660" },
-	{ }
-};
-
-static int mmcc_660_voters_probe(struct platform_device *pdev)
-{
-	int rc, i, num_clks;
-	struct clk *clk;
-	struct clk_onecell_data *onecell;
-
-	num_clks = ARRAY_SIZE(mmcc_voters_sdm660_hws);
-
-	onecell = devm_kzalloc(&pdev->dev,
-			sizeof(struct clk_onecell_data), GFP_KERNEL);
-	if (!onecell)
-		return -ENOMEM;
-
-	onecell->clks = devm_kzalloc(&pdev->dev,
-			(num_clks * sizeof(struct clk*)), GFP_KERNEL);
-	if (!onecell->clks)
-		return -ENOMEM;
-
-	onecell->clk_num = num_clks;
-
-	for (i = 0; i < num_clks; i++) {
-		if (!mmcc_voters_sdm660_hws[i])
-			continue;
-
-		clk = devm_clk_register(&pdev->dev, mmcc_voters_sdm660_hws[i]);
-		if (IS_ERR(clk)) {
-			dev_err(&pdev->dev, "Cannot register clock no %d\n",i);
-			return PTR_ERR(clk);
-		}
-		onecell->clks[i] = clk;
-	}
-
-	rc = of_clk_add_provider(pdev->dev.of_node,
-			of_clk_src_onecell_get, onecell);
-	if (rc == 0)
-		dev_info(&pdev->dev, "Registered MMCC Software Voters\n");
-
-	return rc;
-}
-
-static struct platform_driver mmcc_voters_sdm660_driver = {
-	.probe = mmcc_660_voters_probe,
-	.driver = {
-		.name = "mmsscc-voters-660",
-		.of_match_table = mmcc_voters_sdm660_match_table,
-	},
-};
+// /* Voters */
+// struct clk_hw *mmcc_voters_sdm660_hws[] = {
+// 	[MMSS_CAMSS_JPEG0_VOTE_CLK] = &mmss_camss_jpeg0_vote_clk.hw,
+// 	[MMSS_CAMSS_JPEG0_DMA_VOTE_CLK] = &mmss_camss_jpeg0_dma_vote_clk.hw,
+// };
 
 static int __init mmcc_660_init(void)
 {
