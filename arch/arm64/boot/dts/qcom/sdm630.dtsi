@@ -779,6 +779,30 @@
 					<&sleep_clk>;
 		};
 
+		mmcc: clock-controller@c8c0000 {
+			compatible = "qcom,mmcc-sdm630";
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+			#power-domain-cells = <1>;
+			reg = <0xc8c0000 0x40000>;
+						status = "ok";
+						clock-names = "xo",
+					"sleep_clk";
+				clocks = <&xo_board>,
+						<&sleep_clk>;
+
+			// assigned-clocks = <&mmcc MMPLL10>,
+			//         <&mmcc MMPLL7>,
+			//         <&mmcc MMPLL3>,
+			//         <&mmcc MMPLL4>,
+			//         <&mmcc MMPLL5>;
+			// assigned-clock-rates = <624000000>,
+			//             <810000000>,
+			//             <980000000>,
+			//             <960000000>,
+			//             <825000000>;
+		};
+
 		rpm_msg_ram: memory@778000 {
 			compatible = "qcom,rpm-msg-ram";
 			reg = <0x00778000 0x7000>;
