@@ -80,8 +80,8 @@ static const struct parent_map mmcc_xo_dsibyte_map[] = {
 
 static const char * const mmcc_xo_dsibyte[] = {
 	"xo",
-	"dsi0pll_byte",
-	"dsi1pll_byte",
+	"dsi0pllbyte",
+	"dsi1pllbyte",
 	"core_bi_pll_test_se",
 };
 
@@ -208,8 +208,8 @@ static const struct parent_map mmcc_xo_dsi0pll_dsi1pll_map[] = {
 
 static const char * const mmcc_xo_dsi0pll_dsi1pll[] = {
 	"xo",
-	"dsi0pll_dsiclk",
-	"dsi1pll_dsiclk",
+	"dsi0pll",
+	"dsi1pll",
 	"core_bi_pll_test_se",
 };
 
@@ -1132,7 +1132,7 @@ static struct clk_branch mmss_bimc_smmu_ahb_clk = {
 			.parent_names = (const char *[]){
 				"ahb_clk_src",
 			},
-			//.flags = CLK_ENABLE_HAND_OFF,
+			.flags = CLK_ENABLE_HAND_OFF,
 			.num_parents = 1,
 			.ops = &clk_branch2_ops,
 		},
@@ -1149,7 +1149,7 @@ static struct clk_branch mmss_bimc_smmu_axi_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "mmss_bimc_smmu_axi_clk",
-			//.flags = CLK_ENABLE_HAND_OFF,
+			.flags = CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2150,7 +2150,7 @@ static struct clk_branch mmss_mdss_ahb_clk = {
 			.parent_names = (const char *[]){
 				"ahb_clk_src",
 			},
-			//.flags = CLK_ENABLE_HAND_OFF,
+			.flags = CLK_SET_RATE_PARENT | CLK_ENABLE_HAND_OFF,
 			.num_parents = 1,
 			.ops = &clk_branch2_ops,
 		},
@@ -2472,7 +2472,7 @@ static struct clk_branch mmss_mdss_mdp_clk = {
 				"mdp_clk_src",
 			},
 			.num_parents = 1,
-			.flags = CLK_SET_RATE_PARENT, //| CLK_ENABLE_HAND_OFF,
+			.flags = CLK_SET_RATE_PARENT | CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2583,7 +2583,7 @@ static struct clk_branch mmss_misc_cxo_clk = {
 			.name = "mmss_misc_cxo_clk",
 			.parent_names = (const char *[]){ "xo_ao" },
 			.num_parents = 1,
-			//.flags = CLK_ENABLE_HAND_OFF,
+			.flags = CLK_ENABLE_HAND_OFF,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2701,6 +2701,16 @@ static struct clk_branch mmss_video_subcore0_clk = {
 			.ops = &clk_branch2_ops,
 		},
 	},
+};
+
+static struct gdsc mdss_gdsc = {
+	.gdscr = 0x2304,
+	// .cxcs = (unsigned int []){ 0x2310, 0x231c },
+	// .cxc_count = 2,
+	.pd = {
+		.name = "mdss",
+	},
+	.pwrsts = PWRSTS_OFF_ON,
 };
 
 static struct clk_regmap *mmcc_660_clocks[] = {
@@ -2840,6 +2850,10 @@ static struct clk_regmap *mmcc_660_clocks[] = {
 	[MMSS_MDSS_BYTE1_INTF_DIV_CLK] = &mmss_mdss_byte1_intf_div_clk.clkr,
 };
 
+static struct gdsc *mmcc_sdm660_gdscs[] = {
+	[MDSS_GDSC] = &mdss_gdsc,
+};
+
 static const struct qcom_reset_map mmcc_660_resets[] = {
 	[CAMSS_MICRO_BCR] = { 0x3490 },
 };
@@ -2858,6 +2872,8 @@ static const struct qcom_cc_desc mmcc_660_desc = {
 	.num_clks = ARRAY_SIZE(mmcc_660_clocks),
 	.resets = mmcc_660_resets,
 	.num_resets = ARRAY_SIZE(mmcc_660_resets),
+	.gdscs = mmcc_sdm660_gdscs,
+	.num_gdscs = ARRAY_SIZE(mmcc_sdm660_gdscs),
 };
 
 static const struct of_device_id mmcc_660_match_table[] = {
