@@ -35,7 +35,7 @@
 			height = <1920>;
 			stride = <(1080 * 4)>;
 			format = "a8r8g8b8";
-			//status= "disabled";
+			status= "disabled";
 
 			//power-domains = <&mmcc MDSS_GDSC>;
 			clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
