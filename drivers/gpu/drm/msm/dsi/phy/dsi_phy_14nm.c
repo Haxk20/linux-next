@@ -158,6 +158,6 @@ const struct msm_dsi_phy_cfg dsi_phy_14nm_cfgs = {
 		.disable = dsi_14nm_phy_disable,
 		.init = dsi_14nm_phy_init,
 	},
-	.io_start = { 0x994400, 0x996400 },
+	.io_start = { 0xc994400, 0xc996000 },
 	.num_dsi_phy = 2,
 };
