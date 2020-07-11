@@ -150,7 +150,7 @@ static const struct msm_dsi_config msm8998_dsi_cfg = {
 };
 
 static const char * const dsi_sdm660_bus_clk_names[] = {
-	"iface", "bus", "core",
+	"iface", "bus", "core", "core_mmss", "mnoc",
 };
 
 static const struct msm_dsi_config sdm660_dsi_cfg = {
@@ -164,8 +164,8 @@ static const struct msm_dsi_config sdm660_dsi_cfg = {
 	},
 	.bus_clk_names = dsi_sdm660_bus_clk_names,
 	.num_bus_clks = ARRAY_SIZE(dsi_sdm660_bus_clk_names),
-	.io_start = { 0xc994000 },
-	.num_dsi = 1,
+	.io_start = { 0xc994000, 0xc996000 },
+	.num_dsi = 2,
 };
 
 static const char * const dsi_sdm845_bus_clk_names[] = {
