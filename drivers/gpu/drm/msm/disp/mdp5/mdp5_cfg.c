@@ -910,8 +910,8 @@ static const struct mdp5_cfg_hw msm8998_config = {
 	.max_clk = 412500000,
 };
 
-static const struct mdp5_cfg_hw sdm660_config = {
-	.name = "sdm660",
+static const struct mdp5_cfg_hw sdm630_config = {
+	.name = "sdm630",
 	.mdp = {
 		.count = 1,
 		.caps = MDP_CAP_CDM |
@@ -921,7 +921,7 @@ static const struct mdp5_cfg_hw sdm660_config = {
 	.ctl = {
 		.count = 5,
 		.base = { 0x01000, 0x01200, 0x01400, 0x01600, 0x01800 },
-		.flush_hw_mask = 0xf7ffffff,
+		.flush_hw_mask = 0xf4ffffff,
 	},
 	.pipe_vig = {
 		.count = 1,
@@ -969,7 +969,7 @@ static const struct mdp5_cfg_hw sdm660_config = {
 				{ .id = 0, .pp = 0, .dspp = 0,
 				  .caps = MDP_LM_CAP_DISPLAY |
 					  MDP_LM_CAP_PAIR, },
-				{ .id = 1, .pp = -1, .dspp = -1,
+				{ .id = 1, .pp = 1, .dspp = -1,
 				  .caps = MDP_LM_CAP_WB, },
 				},
 		.nb_stages = 8,
@@ -985,8 +985,8 @@ static const struct mdp5_cfg_hw sdm660_config = {
 		.base = { 0x78000, 0x78800 },
 	},
 	.pp = {
-		.count = 2,
-		.base = { 0x70000, 0x71000 },
+		.count = 3,
+		.base = { 0x70000, 0x71000, 0x72000 },
 	},
 	.cdm = {
 		.count = 1,
@@ -1016,7 +1016,7 @@ static const struct mdp5_cfg_handler cfg_handlers_v1[] = {
 
 static const struct mdp5_cfg_handler cfg_handlers_v3[] = {
 	{ .revision = 0, .config = { .hw = &msm8998_config } },
-	{ .revision = 3, .config = { .hw = &sdm660_config } },
+	{ .revision = 3, .config = { .hw = &sdm630_config } },
 };
 
 static struct mdp5_cfg_platform *mdp5_get_config(struct platform_device *dev);
