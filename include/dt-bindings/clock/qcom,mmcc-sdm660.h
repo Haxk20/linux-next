@@ -204,6 +204,7 @@
 #define VIDEO_CORE_CLK_SRC                       189
 #define VSYNC_CLK_SRC                            190
 #define MMSS_MDSS_BYTE1_INTF_DIV_CLK             191
+#define AXI_CLK_SRC				192
 
 #define BIMC_SMMU_GDSC                           0
 #define CAMSS_CPP_GDSC                           1

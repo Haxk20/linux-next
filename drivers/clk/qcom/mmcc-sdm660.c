@@ -508,7 +508,7 @@ static struct clk_rcg2 byte0_clk_src = {
 		.parent_names = mmcc_xo_dsibyte,
 		.num_parents = 4,
 		.ops = &clk_byte2_ops,
-		.flags = CLK_SET_RATE_PARENT | CLK_GET_RATE_NOCACHE,
+		.flags = CLK_SET_RATE_PARENT,
 	},
 };
 
@@ -522,7 +522,7 @@ static struct clk_rcg2 byte1_clk_src = {
 		.parent_names = mmcc_xo_dsibyte,
 		.num_parents = 4,
 		.ops = &clk_byte2_ops,
-		.flags = CLK_SET_RATE_PARENT | CLK_GET_RATE_NOCACHE,
+		.flags = CLK_SET_RATE_PARENT,
 	},
 };
 
@@ -2165,6 +2165,9 @@ static struct clk_branch mmss_mdss_axi_clk = {
 		.enable_mask = BIT(0),
 		.hw.init = &(struct clk_init_data){
 			.name = "mmss_mdss_axi_clk",
+			.parent_names = (const char *[]){
+				"axi_clk_src",
+			},
 			.flags = CLK_INHERIT_BOOTLOADER,
 			.ops = &clk_branch2_ops,
 		},
@@ -2216,7 +2219,7 @@ static struct clk_branch mmss_mdss_byte0_intf_clk = {
 				"mmss_mdss_byte0_intf_div_clk",
 			},
 			.num_parents = 1,
-			.flags = CLK_SET_RATE_PARENT | CLK_GET_RATE_NOCACHE | CLK_INHERIT_BOOTLOADER,
+			.flags = CLK_SET_RATE_PARENT | CLK_INHERIT_BOOTLOADER,
 			.ops = &clk_branch2_ops,
 		},
 	},
@@ -2477,6 +2480,29 @@ static struct clk_branch mmss_mdss_mdp_clk = {
 			.ops = &clk_branch2_ops,
 		},
 	},
+};
+
+static const struct freq_tbl ftbl_axi_clk_src[] = {
+		F(75000000, P_GPLL0, 8, 0, 0),
+		F(171428571, P_GPLL0, 3.5, 0, 0),
+		F(240000000, P_GPLL0, 2.5, 0, 0),
+		F(323200000, P_MMPLL0, 2.5, 0, 0),
+		F(406000000, P_MMPLL0, 2, 0, 0),
+		{ }
+};
+
+/* RO to linux */
+static struct clk_rcg2 axi_clk_src = {
+		.cmd_rcgr = 0xd000,
+		.hid_width = 5,
+		.parent_map = mmcc_xo_mmpll0_mmpll4_mmpll7_mmpll10_gpll0_gpll0_div_map,
+		.freq_tbl = ftbl_axi_clk_src,
+		.clkr.hw.init = &(struct clk_init_data){
+				.name = "axi_clk_src",
+				.parent_names = mmcc_xo_mmpll0_mmpll4_mmpll7_mmpll10_gpll0_gpll0_div,
+				.num_parents = 7, 
+				.ops = &clk_rcg2_ops,
+		},
 };
 
 static struct clk_branch mmss_mdss_pclk0_clk = {
@@ -2850,6 +2876,7 @@ static struct clk_regmap *mmcc_660_clocks[] = {
 	[VIDEO_CORE_CLK_SRC] = &video_core_clk_src.clkr,
 	[VSYNC_CLK_SRC] = &vsync_clk_src.clkr,
 	[MMSS_MDSS_BYTE1_INTF_DIV_CLK] = &mmss_mdss_byte1_intf_div_clk.clkr,
+	[AXI_CLK_SRC] = &axi_clk_src.clkr,
 };
 
 static struct gdsc *mmcc_sdm660_gdscs[] = {
