@@ -20,7 +20,7 @@
 
 	/* This part enables graphical output via bootloader-enabled display */
 	chosen {
-		bootargs = "earlycon=tty0 console=tty0 panic=0 drm.debug=0xf clk_ignore_unused";
+		bootargs = "earlycon=tty0 console=tty0 panic=0 clk_ignore_unused";
 
 		#address-cells = <2>;
 		#size-cells = <2>;
@@ -35,9 +35,9 @@
 			height = <1920>;
 			stride = <(1080 * 4)>;
 			format = "a8r8g8b8";
-			status= "disabled";
+			//status= "disabled";
 
-			//power-domains = <&mmcc MDSS_GDSC>;
+			power-domains = <&mmcc MDSS_GDSC>;
 			clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
 				 <&mmcc MMSS_MNOC_AHB_CLK>,
 				 <&mmcc MMSS_MDSS_VSYNC_CLK>,
@@ -202,11 +202,8 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	pinctrl-names = "default", "sleep";
-	pinctrl-0 = <&panel_reset_gpio &panel_te_gpio>;
-	pinctrl-1 = <&mdss_dsi_suspend &panel_te_gpio>;
-
 	panel: panel@0 {
+		reg = <0>;
 		//status = "disabled";
 		compatible = "mdss,td4322-truly-fhd";
 
