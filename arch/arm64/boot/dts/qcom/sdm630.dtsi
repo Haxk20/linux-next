@@ -1505,6 +1505,10 @@
 				iommus = <&mmss_smmu 0>; //0 is unsec 1 is secure
 				status = "okay";
 
+				interconnects = <&mnoc MASTER_MDP_P0 &bimc SLAVE_EBI>,
+					<&mnoc MASTER_MDP_P1 &bimc SLAVE_EBI>;
+				interconnect-names = "mdp0-mem", "mdp1-mem";
+
 				ports {
 					#address-cells = <1>;
 					#size-cells = <0>;
@@ -1589,8 +1593,7 @@
 				#clock-cells = <1>;
 				#phy-cells = <0>;
 
-				clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
-					 <&xo_board>;
+				clocks = <&mmcc MMSS_MDSS_AHB_CLK>, <&xo_board>;
 				clock-names = "iface", "ref";
 			};
         };
