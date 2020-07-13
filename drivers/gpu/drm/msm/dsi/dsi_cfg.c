@@ -150,7 +150,7 @@ static const struct msm_dsi_config msm8998_dsi_cfg = {
 };
 
 static const char * const dsi_sdm660_bus_clk_names[] = {
-	"iface", "bus", "core", "core_mmss", "mnoc",
+	"iface", "bus", "core", "core_mmss",
 };
 
 static const struct msm_dsi_config sdm660_dsi_cfg = {
