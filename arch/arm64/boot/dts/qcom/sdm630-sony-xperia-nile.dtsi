@@ -240,6 +240,10 @@
 	};
 };
 
+&pm660l_wled {
+	status = "okay";
+};
+
 &qusb2phy {
 	status = "okay";
 };
