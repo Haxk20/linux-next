@@ -497,6 +497,12 @@
 			reg = <0x0 0x9d400000 0x0 0x23ff000>;
 			no-map;
 		};
+
+		zap_shader_region: gpu@8f200000 { //CHECKME!
+			compatible = "shared-dma-pool";
+			reg = <0x0 0x90b00000 0x0 0xa00000>;
+			no-map;
+		};
 	};
 
 	rpm-glink {
@@ -779,7 +785,86 @@
 			clocks = <&xo_board>,
 					<&sleep_clk>;
 		};
+#if 0
+		gpu: gpu@5000000 {
+			compatible = "qcom,adreno-508.0", "qcom,adreno";
+			#stream-id-cells = <16>;
 
+			reg = <0x5000000 0x40000>;
+			reg-names = "kgsl_3d0_reg_memory";
+
+			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+
+			clocks = <&gpucc GPUCC_GFX3D_OXILI_CLK>,
+			    <&gpucc GPUCC_GFX3D_OXILI_AHB_CLK>,
+			    <&gpucc GPUCC_GFX3D_BIMC_CLK>,
+			    <&gpucc GPUCC_GFX3D_OXILI_TIMER_CLK>,
+			    <&gpucc GPUCC_GFX3D_GTCU_AHB_CLK>,
+			    <&gpucc GPUCC_GFX3D_TBU1_CLK>,
+			    <&gpucc GPUCC_GFX3D_OXILI_AON_CLK>;
+
+			clock-names = "core",
+				      "iface",
+				      "mem",
+				      "mem_iface",
+				      "rbbmtimer",
+				      "alwayson";
+
+			power-domains = <&gpucc OXILI_CX_GDSC>;// CX? GX? who knows..
+
+			nvmem-cells = <&gpu_speed_bin>;
+			nvmem-cell-names = "speed_bin";
+
+			iommus = <&kgsl_smmu 0>;
+
+			operating-points-v2 = <&gpu_opp_table>;
+
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-647000000 {
+					opp-hz = /bits/ 64 <647000000>;
+					opp-level = <RPM_SMD_LEVEL_NOM_PLUS>;
+				};
+
+				opp-588000000 {
+					opp-hz = /bits/ 64 <588000000>;
+					opp-level = <RPM_SMD_LEVEL_NOM>;
+				};
+
+				opp-465000000 {
+					opp-hz = /bits/ 64 <465000000>;
+					opp-level = <RPM_SMD_LEVEL_SVS_PLUS>;
+				};
+
+				opp-370000000 {
+					opp-hz = /bits/ 64 <370000000>;
+					opp-level = <RPM_SMD_LEVEL_SVS>;
+				};
+
+				opp-240000000 {
+					opp-hz = /bits/ 64 <240000000>;
+					opp-level = <RPM_SMD_LEVEL_LOW_SVS>;
+				};
+
+				opp-160000000 {
+					opp-hz = /bits/ 64 <160000000>;
+					opp-level = <RPM_SMD_LEVEL_MIN_SVS>;
+				};
+
+				opp-19200000 {
+					opp-hz = /bits/ 64 <19200000>;
+					//opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>; XO
+				};
+			};
+
+			zap-shader {
+				memory-region = <&zap_shader_region>;
+				firmware-name = "a508_zap.mdt";
+			};
+		};
+#endif
 		mmcc: clock-controller@c8c0000 {
 			compatible = "qcom,mmcc-sdm630";
 			#clock-cells = <1>;
@@ -838,6 +923,11 @@
 			qusb2_hstx_trim: hstx-trim@240 {
 				reg = <0x240 0x1>;
 				bits = <0 4>;
+			};
+
+			gpu_speed_bin: gpu_speed_bin@133 { // CHECKME!
+				reg = <0x133 0x1>;
+				bits = <5 3>;
 			};
 		};
 
