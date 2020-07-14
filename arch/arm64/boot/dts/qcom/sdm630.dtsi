@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/clock/qcom,gcc-sdm660.h>
+#include <dt-bindings/clock/qcom,gpucc-sdm660.h>
 #include <dt-bindings/clock/qcom,mmcc-sdm660.h>
 #include <dt-bindings/clock/qcom,rpmcc.h>
 #include <dt-bindings/power/qcom-rpmpd.h>
@@ -785,7 +786,7 @@
 			clocks = <&xo_board>,
 					<&sleep_clk>;
 		};
-#if 0
+#if 1
 		gpu: gpu@5000000 {
 			compatible = "qcom,adreno-508.0", "qcom,adreno";
 			#stream-id-cells = <16>;
@@ -795,66 +796,62 @@
 
 			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
 
-			clocks = <&gpucc GPUCC_GFX3D_OXILI_CLK>,
-			    <&gpucc GPUCC_GFX3D_OXILI_AHB_CLK>,
-			    <&gpucc GPUCC_GFX3D_BIMC_CLK>,
-			    <&gpucc GPUCC_GFX3D_OXILI_TIMER_CLK>,
-			    <&gpucc GPUCC_GFX3D_GTCU_AHB_CLK>,
-			    <&gpucc GPUCC_GFX3D_TBU1_CLK>,
-			    <&gpucc GPUCC_GFX3D_OXILI_AON_CLK>;
+			clocks = <&gpucc GPUCC_GFX3D_CLK>,
+			    <&gcc GCC_GPU_CFG_AHB_CLK>,
+			    <&gcc GCC_BIMC_GFX_CLK>,
+			    <&gcc GCC_GPU_BIMC_GFX_CLK>,
+			    <&gpucc GPUCC_RBBMTIMER_CLK>,
+				<&gpucc GPUCC_RBCPR_CLK>;
 
 			clock-names = "core",
 				      "iface",
 				      "mem",
 				      "mem_iface",
 				      "rbbmtimer",
-				      "alwayson";
+					  "rbcpr";
 
-			power-domains = <&gpucc OXILI_CX_GDSC>;// CX? GX? who knows..
+			power-domains = <&gpucc GPU_GX_GDSC>; /* GX is both CX and GX */
 
-			nvmem-cells = <&gpu_speed_bin>;
-			nvmem-cell-names = "speed_bin";
+			// nvmem-cells = <&gpu_speed_bin>;
+			// nvmem-cell-names = "speed_bin";
 
-			iommus = <&kgsl_smmu 0>;
+			// qcom,gpu-quirk-two-pass-use-wfi;
+			// qcom,gpu-quirk-fault-detect-mask;
+
+			//iommus = <&kgsl_smmu 0>;
 
 			operating-points-v2 = <&gpu_opp_table>;
-
 
 			gpu_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
-				opp-647000000 {
-					opp-hz = /bits/ 64 <647000000>;
-					opp-level = <RPM_SMD_LEVEL_NOM_PLUS>;
-				};
-
-				opp-588000000 {
-					opp-hz = /bits/ 64 <588000000>;
-					opp-level = <RPM_SMD_LEVEL_NOM>;
-				};
-
 				opp-465000000 {
 					opp-hz = /bits/ 64 <465000000>;
 					opp-level = <RPM_SMD_LEVEL_SVS_PLUS>;
+					opp-supported-hw = <0xFF>;
 				};
 
 				opp-370000000 {
 					opp-hz = /bits/ 64 <370000000>;
 					opp-level = <RPM_SMD_LEVEL_SVS>;
+					opp-supported-hw = <0xFF>;
 				};
 
 				opp-240000000 {
 					opp-hz = /bits/ 64 <240000000>;
 					opp-level = <RPM_SMD_LEVEL_LOW_SVS>;
+					opp-supported-hw = <0xFF>;
 				};
 
 				opp-160000000 {
 					opp-hz = /bits/ 64 <160000000>;
 					opp-level = <RPM_SMD_LEVEL_MIN_SVS>;
+					opp-supported-hw = <0xFF>;
 				};
 
 				opp-19200000 {
 					opp-hz = /bits/ 64 <19200000>;
+					opp-supported-hw = <0xFF>;
 					//opp-level = <RPMH_REGULATOR_LEVEL_LOW_SVS>; XO
 				};
 			};
@@ -865,6 +862,20 @@
 			};
 		};
 #endif
+		gpucc: clock-controller@5065000 {
+			compatible = "qcom,gpucc-sdm630";
+			reg = <0x05065000 0x10000>;
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+			#power-domain-cells = <1>;
+			clocks = <&rpmcc RPM_SMD_XO_CLK_SRC>,
+				 <&gcc GCC_GPU_GPLL0_CLK>,
+				 <&gcc GCC_GPU_GPLL0_DIV_CLK>;
+			clock-names = "gpucc_cxo_clk",
+				      "gcc_gpu_gpll0_clk",
+				      "gcc_gpu_gpll0_div_clk";
+		};
+
 		mmcc: clock-controller@c8c0000 {
 			compatible = "qcom,mmcc-sdm630";
 			#clock-cells = <1>;
@@ -1368,7 +1379,7 @@
 
 		kgsl_smmu: iommu@5040000 {
 			compatible = "qcom,sdm630-smmu-v2", "qcom,smmu-v2";
-			reg = <0x05040000 0x10000>;
+			reg = <0x05040000 0x5000>; /*it's 0x10000 but 8996 uses half the downstream value? */
 			#iommu-cells = <1>;
 			qcom,skip-init;
 
@@ -1385,6 +1396,12 @@
 				<GIC_SPI 117 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 349 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 350 IRQ_TYPE_LEVEL_HIGH>;
+
+			clocks = <&gcc GCC_GPU_CFG_AHB_CLK>,
+				 <&gcc GCC_GPU_BIMC_GFX_CLK>;
+			
+			clock-names = "iface", "bus";
+			power-domains = <&gpucc GPU_CX_GDSC>;
 		};
 
 		lpass_smmu: iommu@5100000 {
@@ -1555,14 +1572,18 @@
 
 			power-domains = <&mmcc MDSS_GDSC>;
 
-			clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
-				 <&mmcc MMSS_MDSS_AXI_CLK>,
-				 <&mmcc MMSS_MDSS_VSYNC_CLK>,
-				 <&mmcc MMSS_MDSS_MDP_CLK>;
-			clock-names = "iface",
-				      "bus",
-				      "vsync",
-					  "core";
+			// clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
+			// 	 <&mmcc MMSS_MDSS_AXI_CLK>,
+			// 	 <&mmcc MMSS_MDSS_VSYNC_CLK>,
+			// 	 <&mmcc MMSS_MDSS_MDP_CLK>;
+			// clock-names = "iface",
+			// 	      "bus",
+			// 	      "vsync",
+			// 		  "core";
+
+
+			clocks = <&mmcc MMSS_MDSS_AHB_CLK>;
+			clock-names = "iface";
 
 			interrupts = <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
 
@@ -1586,11 +1607,13 @@
 				clocks = <&mmcc MMSS_MDSS_AHB_CLK>,
 					 <&mmcc MMSS_MDSS_AXI_CLK>,
 					 <&mmcc MMSS_MDSS_MDP_CLK>,
-					 <&mmcc MMSS_MDSS_VSYNC_CLK>;
+					 <&mmcc MMSS_MDSS_VSYNC_CLK>,
+					 <&mmcc MDP_CLK_SRC>;
 				clock-names = "iface",
 					      "bus",
 					      "core",
-					      "vsync";
+					      "vsync",
+						  "lut";
 
 				iommus = <&mmss_smmu 0>; //0 is unsec 1 is secure
 				status = "okay";
@@ -1946,11 +1969,13 @@
 						<&mmcc MMSS_BIMC_SMMU_AXI_CLK>;
 				clock-names = "iface", "bus";
 
+				power-domains = <&mmcc BIMC_SMMU_GDSC>;
+
 			/*
 			 * This SMMU needs to be disabled until we
 			 * support multimedia subsystem and its clocks
 			 */
-			//status = "disabled";
+			status = "disabled";
 		};
 
 		gnoc: interconnect@17900000 {
