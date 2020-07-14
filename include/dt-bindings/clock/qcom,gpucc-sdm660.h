@@ -33,12 +33,14 @@
 #define GPUCC_CXO_CLK						16
 
 /* RBCPR GPUCC clocks */
-#define RBCPR_CLK_SRC						0
-#define GPUCC_RBCPR_CLK						1
+#define RBCPR_CLK_SRC						17
+#define GPUCC_RBCPR_CLK						18
 
+/* GDSCs */
 #define GPU_CX_GDSC						0
 #define GPU_GX_GDSC						1
 
+/* Resets */
 #define GPUCC_GPU_CX_BCR					0
 #define GPUCC_GPU_GX_BCR					1
 #define GPUCC_RBCPR_BCR						2
