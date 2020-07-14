@@ -30,6 +30,7 @@
 #include "clk-pll.h"
 #include "clk-rcg.h"
 #include "clk-branch.h"
+#include "gdsc.h"
 
 enum {
 	P_GPU_XO,
@@ -291,6 +292,27 @@ static struct clk_branch gpucc_rbcpr_clk = {
 	},
 };
 
+static struct gdsc gpu_cx_gdsc = {
+	.gdscr = 0x1004,
+	.gds_hw_ctrl = 0x1008,
+	.pd = {
+		.name = "gpu_cx",
+	},
+	.pwrsts = PWRSTS_OFF_ON,
+	.flags = VOTABLE,
+};
+
+static struct gdsc gpu_gx_gdsc = {
+	.gdscr = 0x1094,
+	.clamp_io_ctrl = 0x130,
+	.pd = {
+		.name = "gpu_gx",
+	},
+	.parent = &gpu_cx_gdsc.pd,
+	.pwrsts = PWRSTS_OFF_ON,
+	.flags = CLAMP_IO | AON_RESET,
+};
+
 static struct clk_regmap *gpucc_660_clocks[] = {
 	[GPU_PLL0_PLL] = &gpu_pll0_pll_out_main.clkr,
 	[GPU_PLL1_PLL] = &gpu_pll1_pll_out_main.clkr,
@@ -298,13 +320,22 @@ static struct clk_regmap *gpucc_660_clocks[] = {
 	[GPUCC_GFX3D_CLK] = &gpucc_gfx3d_clk.clkr,
 	[GPUCC_RBBMTIMER_CLK] = &gpucc_rbbmtimer_clk.clkr,
 	[RBBMTIMER_CLK_SRC] = &rbbmtimer_clk_src.clkr,
+	/* */
+	[GPUCC_CXO_CLK] = &gpucc_cxo_clk.clkr,
+	[RBCPR_CLK_SRC] = &rbcpr_clk_src.clkr,
+	[GPUCC_RBCPR_CLK] = &gpucc_rbcpr_clk.clkr,
+};
+
+static struct gdsc *gpucc_sdm660_gdscs[] = {
+	[GPU_CX_GDSC] = &gpu_cx_gdsc,
+	[GPU_GX_GDSC] = &gpu_gx_gdsc,
 };
 
 static const struct regmap_config gpucc_660_regmap_config = {
 	.reg_bits	= 32,
 	.reg_stride	= 4,
 	.val_bits	= 32,
-	.max_register	= 0x9034,
+	.max_register	= 0x10000,
 	.fast_io	= true,
 };
 
@@ -312,6 +343,8 @@ static const struct qcom_cc_desc gpucc_660_desc = {
 	.config = &gpucc_660_regmap_config,
 	.clks = gpucc_660_clocks,
 	.num_clks = ARRAY_SIZE(gpucc_660_clocks),
+	.gdscs = gpucc_sdm660_gdscs,
+	.num_gdscs = ARRAY_SIZE(gpucc_sdm660_gdscs),
 };
 
 static const struct of_device_id gpucc_660_match_table[] = {
@@ -354,6 +387,20 @@ static int gpucc_660_probe(struct platform_device *pdev)
 		gfx3d_clk_src.freq_tbl = ftbl_gfx3d_clk_src_630;
 	}
 
+	/* the other clocks */
+
+	/* Set the rate for GPU XO to make the clk API happy */
+	clk_set_rate(gpucc_cxo_clk.clkr.hw.clk, 19200000);
+
+	/*
+	 * gpucc_xo works as the root clock for all GPUCC RCGs and GDSCs.
+	 *  Keep it enabled always.
+	 */
+	clk_prepare_enable(gpucc_cxo_clk.clkr.hw.clk);
+
+	dev_info(&pdev->dev, "Registered GPU RBCPR clocks\n");
+	/* end of the other clocks */
+
 	clk_alpha_pll_configure(&gpu_pll0_pll_out_main, regmap,
 							&gpu_pll0_config);
 	clk_alpha_pll_configure(&gpu_pll1_pll_out_main, regmap,
@@ -368,6 +415,19 @@ static int gpucc_660_probe(struct platform_device *pdev)
 	clk_set_rate(gpu_pll0_pll_out_main.clkr.hw.clk, 800000000);
 
 	dev_info(&pdev->dev, "Registered GPUCC clocks\n");
+
+
+	////////////////////
+	// /* Set the rate for GPU XO to make the clk API happy */
+	// clk_set_rate(gpucc_cxo_clk.clkr.hw.clk, 19200000);
+
+	// /*
+	//  * gpucc_xo works as the root clock for all GPUCC RCGs and GDSCs.
+	//  *  Keep it enabled always.
+	//  */
+	// clk_prepare_enable(gpucc_cxo_clk.clkr.hw.clk);
+
+	// dev_info(&pdev->dev, "Registered GPU RBCPR clocks\n");
 
 	return ret;
 }
@@ -391,82 +451,4 @@ static void __exit gpucc_660_exit(void)
 	platform_driver_unregister(&gpucc_660_driver);
 }
 module_exit(gpucc_660_exit);
-
-/* GPU RBCPR Clocks */
-static struct clk_regmap *gpucc_rbcpr_660_clocks[] = {
-	[GPUCC_CXO_CLK] = &gpucc_cxo_clk.clkr,
-	[RBCPR_CLK_SRC] = &rbcpr_clk_src.clkr,
-	[GPUCC_RBCPR_CLK] = &gpucc_rbcpr_clk.clkr,
-};
-
-static const struct qcom_cc_desc gpu_660_desc = {
-	.config = &gpucc_660_regmap_config,
-	.clks = gpucc_rbcpr_660_clocks,
-	.num_clks = ARRAY_SIZE(gpucc_rbcpr_660_clocks),
-};
-
-static const struct of_device_id gpucc_rbcpr_660_match_table[] = {
-	{ .compatible = "qcom,gpu-sdm660" },
-	{ }
-};
-MODULE_DEVICE_TABLE(of, gpucc_rbcpr_660_match_table);
-
-static int gpu_660_probe(struct platform_device *pdev)
-{
-	int ret = 0;
-	struct clk *tmp;
-	struct regmap *regmap;
-
-	tmp = devm_clk_get(&pdev->dev, "gpll0");
-	if (IS_ERR(tmp)) {
-		if (PTR_ERR(tmp) != -EPROBE_DEFER)
-			dev_err(&pdev->dev,
-				"The GPLL0 clock cannot be found.\n");
-		return PTR_ERR(tmp);
-	}
-
-	regmap = qcom_cc_map(pdev, &gpu_660_desc);
-	if (IS_ERR(regmap))
-		return PTR_ERR(regmap);
-
-	ret = qcom_cc_really_probe(pdev, &gpu_660_desc, regmap);
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to register GPU RBCPR clocks\n");
-		return ret;
-	}
-
-	/* Set the rate for GPU XO to make the clk API happy */
-	clk_set_rate(gpucc_cxo_clk.clkr.hw.clk, 19200000);
-
-	/*
-	 * gpucc_xo works as the root clock for all GPUCC RCGs and GDSCs.
-	 *  Keep it enabled always.
-	 */
-	clk_prepare_enable(gpucc_cxo_clk.clkr.hw.clk);
-
-	dev_info(&pdev->dev, "Registered GPU RBCPR clocks\n");
-
-	return ret;
-}
-
-static struct platform_driver gpu_660_driver = {
-	.probe		= gpu_660_probe,
-	.driver		= {
-		.name	= "gpu-sdm660",
-		.of_match_table = gpucc_rbcpr_660_match_table,
-	},
-};
-
-static int __init gpu_660_init(void)
-{
-	return platform_driver_register(&gpu_660_driver);
-}
-core_initcall(gpu_660_init);
-
-static void __exit gpu_660_exit(void)
-{
-	platform_driver_unregister(&gpu_660_driver);
-}
-module_exit(gpu_660_exit);
-
 
