@@ -10,10 +10,10 @@
 / {
 	model = "Sony Xperia 10";
 	compatible = "sony,kirin-row", "qcom,sdm630";
-	
+};
+
 &dsi0 {
 	panel: panel@0 {
 		compatible = "mdss,nt36672a-truly-fhdplus";
 	};
-};
 };
