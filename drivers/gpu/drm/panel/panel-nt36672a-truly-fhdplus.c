@@ -170,7 +170,7 @@ static int nt36672a_truly_fhdplus_on(struct nt36672a_truly_fhdplus *ctx)
 	dsi_dcs_write_seq(dsi, 0x24, 0x6d);
 	dsi_dcs_write_seq(dsi, 0x25, 0x6d);
 	dsi_dcs_write_seq(dsi, 0x2f, 0x10);
-	dsi_dcs_write_seq(dsi, MIPI_DCS_SET_PARTIAL_AREA, 0x2d);
+	dsi_dcs_write_seq(dsi, MIPI_DCS_SET_PARTIAL_ROWS, 0x2d);
 	dsi_dcs_write_seq(dsi, 0x38, 0x2d);
 	dsi_dcs_write_seq(dsi, 0x3f, 0x21);
 	dsi_dcs_write_seq(dsi, 0x40, 0x65);
