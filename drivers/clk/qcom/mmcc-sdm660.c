@@ -2741,6 +2741,16 @@ static struct gdsc mdss_gdsc = {
 	.pwrsts = PWRSTS_OFF_ON,
 };
 
+static struct gdsc bimc_smmu_gdsc = { //this one is broken
+	.gdscr = 0xe020,
+	.gds_hw_ctrl = 0xe024,
+	.pd = {
+		.name = "bimc_smmu",
+	},
+	.pwrsts = PWRSTS_OFF_ON,
+	.flags = HW_CTRL,// | VOTABLE,
+};
+
 static struct clk_regmap *mmcc_660_clocks[] = {
 	[AHB_CLK_SRC] = &ahb_clk_src.clkr,
 	[BYTE0_CLK_SRC] = &byte0_clk_src.clkr,
@@ -2881,6 +2891,7 @@ static struct clk_regmap *mmcc_660_clocks[] = {
 
 static struct gdsc *mmcc_sdm660_gdscs[] = {
 	[MDSS_GDSC] = &mdss_gdsc,
+	[BIMC_SMMU_GDSC] = &bimc_smmu_gdsc,
 };
 
 static const struct qcom_reset_map mmcc_660_resets[] = {
