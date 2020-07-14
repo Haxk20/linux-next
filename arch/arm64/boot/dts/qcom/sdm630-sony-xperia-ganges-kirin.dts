@@ -13,5 +13,7 @@
 	
 &dsi0 {
 	panel: panel@0 {
-		compatible = "mdss,td4322-truly-fhd";
+		compatible = "mdss,nt36672a-truly-fhdplus";
+	};
+};
 };
