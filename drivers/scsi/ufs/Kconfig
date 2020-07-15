@@ -173,6 +173,21 @@ config SCSI_UFS_EXYNOS
 	  Select this if you have UFS host controller on EXYNOS chipset.
 	  If unsure, say N.
 
+
+config SCSI_UFS_EXYNOS_DBG
+	bool "EXYNOS specific debug functions"
+	default n
+	depends on SCSI_UFS_EXYNOS
+	help
+	  This selects EXYNOS specific functions to get and even print
+	  debug information to see what's happening at both command
+	  issue time and completion time.
+	  The information contains general information as well as
+	  EXYNOS internals such as vendor specific hardware contexts.
+
+	  Select this if you want to capture and print debug information.
+	  If unsure, say N.
+
 config SCSI_UFS_CRYPTO
 	bool "UFS Crypto Engine Support"
 	depends on SCSI_UFSHCD && BLK_INLINE_ENCRYPTION
