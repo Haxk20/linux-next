@@ -74,6 +74,7 @@ static void ufs_s_print_cmd_log(struct ufs_s_dbg_mgr *mgr, struct device *dev)
 	dev_err(dev, ":OP, TAG, LBA, SCT, RETRIES, STIME, ETIME, REQS\n\n");
 
 	idx = (last == max - 1) ? 0 : last + 1;
+	data = &cmd_info->data[idx];
 	for (i = 0 ; i < max ; i++, data = &cmd_info->data[idx]) {
 		dev_err(dev, ": 0x%02x, %02d, 0x%08llx, 0x%04x, %d, %llu, %llu, 0x%llx",
 			data->op, data->tag, data->lba, data->sct, data->retries,
@@ -122,9 +123,7 @@ void exynos_ufs_dump_info(struct ufs_exynos_handle *handle, struct device *dev)
 
 	mgr->time = cpu_clock(raw_smp_processor_id());
 
-#ifdef CONFIG_SCSI_UFS_EXYNOS_CMD_LOG
 	ufs_s_print_cmd_log(mgr, dev);
-#endif
 
 	if (mgr->first_time == 0ULL)
 		mgr->first_time = mgr->time;
@@ -139,8 +138,8 @@ void exynos_ufs_cmd_log_start(struct ufs_exynos_handle *handle,
 	struct scsi_cmnd *cmd = hba->lrb[tag].cmd;
 	int cpu = raw_smp_processor_id();
 	struct cmd_data *cmd_log = &mgr->cmd_log;	/* temp buffer to put */
-	u64 lba = 0;
-	u32 sct = 0;
+	u64 lba;
+	u32 sct;
 
 	if (mgr->active == 0)
 		return;
@@ -153,8 +152,8 @@ void exynos_ufs_cmd_log_start(struct ufs_exynos_handle *handle,
 	cmd_log->outstanding_reqs = hba->outstanding_reqs;
 
 	/* Now assume using WRITE_10 and READ_10 */
-	put_unaligned(cpu_to_le32(*(u32 *)cmd->cmnd[2]), &lba);
-	put_unaligned(cpu_to_le16(*(u16 *)cmd->cmnd[7]), &sct);
+	lba = get_unaligned_be32(&cmd->cmnd[2]);
+	sct = get_unaligned_be32(&cmd->cmnd[7]);
 	if (cmd->cmnd[0] != UNMAP)
 		cmd_log->lba = lba;
 

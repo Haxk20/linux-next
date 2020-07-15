@@ -215,8 +215,8 @@ struct exynos_ufs {
 #define EXYNOS_UFS_OPT_USE_SW_HIBERN8_TIMER	BIT(4)
 
 	struct ufs_exynos_handle handle;
-	spinlock_t dbg_lock;
-	int under_dump;
+	unsigned long dbg_flag;
+#define EXYNOS_UFS_DBG_DUMP_CXT			BIT(0)
 };
 
 #define for_each_ufs_rx_lane(ufs, i) \
@@ -297,6 +297,7 @@ void exynos_ufs_cmd_log_start(struct ufs_exynos_handle *handle,
 void exynos_ufs_cmd_log_end(struct ufs_exynos_handle *handle,
 			    struct ufs_hba *hba, int tag);
 int exynos_ufs_init_dbg(struct ufs_exynos_handle *handle, struct device *dev);
+void exynos_ufs_dump_info(struct ufs_exynos_handle *handle, struct device *dev);
 #else
 void exynos_ufs_cmd_log_start(struct ufs_exynos_handle *handle,
 			      struct ufs_hba *hba, int tag)
@@ -312,5 +313,10 @@ int exynos_ufs_init_dbg(struct ufs_exynos_handle *handle, struct device *dev)
 {
 	return 0;
 }
+
+void exynos_ufs_dump_info(struct ufs_exynos_handle *handle, struct device *dev)
+{
+}
+
 #endif
 #endif /* _UFS_EXYNOS_H_ */
