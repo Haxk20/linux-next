@@ -37,6 +37,48 @@ arm/dt
 		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux tags/tegra-for-5.9-arm-dt
 	tegra/dt64
 		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux tags/tegra-for-5.9-arm64-dt
+	socfpga/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/dinguyen/linux tags/socfpga_dts_update_for_v5.9
+	imx/dt-bindings
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-bindings-5.9
+	imx/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-dt-5.9
+	imx/dt64
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-dt64-5.9
+	versatile/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-integrator tags/versatile-for-v5.9
+	sunxi/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/sunxi/linux tags/sunxi-dt-for-5.9-1
+	hisi/dt
+		git://github.com/hisilicon/linux-hisi tags/hisi-arm32-dt-for-5.9
+	hisi/dt64
+		git://github.com/hisilicon/linux-hisi tags/hisi-arm64-dt-for-5.9
+	qcom/dt64
+		git://git.kernel.org/pub/scm/linux/kernel/git/qcom/linux tags/qcom-arm64-for-5.9
+	qcom/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/qcom/linux tags/qcom-dts-for-5.9
+	samsung/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/krzk/linux tags/samsung-dt-5.9
+	samsung/dt64
+		git://git.kernel.org/pub/scm/linux/kernel/git/krzk/linux tags/samsung-dt64-5.9
+	stm32/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/atorgue/stm32 tags/stm32-dt-for-v5.9-1
+	ux500/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/linusw/linux-stericsson tags/ux500-dts-for-v5.9-1
+	patch
+		ARM: dts: mmp2-olpc-xo-1-75: Fix camera I2C node validation
+		ARM: dts: mmp2-olpc-xo-1-75: Delete #address-cells from ssp3
+		ARM: dts: mmp2: Add #power-domain-cells to /clocks
+		ARM: dts: mmp2: Extend the MPMU reg range
+		ARM: dts: mmp2: Add Audio SRAM
+		ARM: dts: mmp2: Add DMA nodes
+		ARM: dts: mmp2: Add Audio Clock controller
+		ARM: dts: mmp2: Add SSPA nodes
+		ARM: dts: mmp2-olpc-xo-1-75: Enable audio support
+		ARM: dts: mmp2: Add the GPU
+		ARM: dts: mmp2-olpc-xo-1-75: Enable the GPU
+		ARM: dts: mmp3: Add the GPU
+		ARM: dts: mmp3-dell-ariel: Enable the GPU
 
 arm/drivers
 	drivers/soc-attr
@@ -65,6 +107,14 @@ arm/defconfig
 		arm64: defconfig: enable TSN features for ENETC and similiar hardware
 		arm64: defconfig: enable CONFIG_FSL_ENETC_QOS
 		arm/arm64: defconfig: Update configs to use the new CROS_EC options
+	tegra/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux tags/tegra-for-5.9-arm-defconfig
+	sunxi/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/sunxi/linux tags/sunxi-config-for-5.9-1
+	qcom/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/qcom/linux tags/qcom-arm64-defconfig-for-5.9
+	imx/defconfig
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-defconfig-5.9
 
 arm/newsoc
 	patch
@@ -74,16 +124,8 @@ arm/newsoc
 		arm64: dts: keembay: Add device tree for Keem Bay SoC
 		arm64: dts: keembay: Add device tree for Keem Bay EVM board
 
-arm/late
-
 arm/fixes
-	<no branch> (54320dcaa2522db3222c02d68b52cfed32a2e95b)
-		git://git.kernel.org/pub/scm/linux/kernel/git/khilman/linux-amlogic tags/amlogic-fixes
-	<no branch> (7f6e8dffc30bd22b15ad810fb90ea741c15e6d54)
-		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-fixes-5.8-2
-	<no branch> (2a4117df9b436a0e4c79d211284ab2097bcd00dc)
-		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v5.8/fixes-rc5-signed
-	<no branch> (fecc5cfcd55f7aacc483726c405a951bd6aaaf2e)
-		git://git.kernel.org/pub/scm/linux/kernel/git/geert/renesas-devel tags/renesas-fixes-for-v5.8-tag1
-	<no branch> (681a5c71fb829fc2193e3bb524af41525477f5c3)
-		git://git.kernel.org/pub/scm/linux/kernel/git/dinguyen/linux tags/socfpga_fixes_for_v5.8_v2
+	sunxi/fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/sunxi/linux tags/sunxi-fixes-for-5.8-1
+	imx/fixes
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-fixes-5.8-3
