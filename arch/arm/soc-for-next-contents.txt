@@ -5,6 +5,8 @@ arm/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/tmlind/linux-omap tags/omap-for-v5.9/soc-signed
 	patch
 		ARM: rpc: Change blacklist to quirklist in ecode.c file
+	samsung/soc
+		git://git.kernel.org/pub/scm/linux/kernel/git/krzk/linux tags/samsung-soc-5.9
 
 arm/dt
 	renesas/dt
@@ -99,6 +101,14 @@ arm/drivers
 		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux tags/tegra-for-5.9-memory
 	tegra/soc
 		git://git.kernel.org/pub/scm/linux/kernel/git/tegra/linux tags/tegra-for-5.9-soc
+	patch
+		soc: samsung: exynos-regulator-coupler: Add simple voltage coupler for Exynos5800
+	drivers/reset
+		git://git.pengutronix.de/pza/linux tags/reset-for-v5.9
+	imx/drivers
+		git://git.kernel.org/pub/scm/linux/kernel/git/shawnguo/linux tags/imx-drivers-5.9
+	qcom/drivers
+		git://git.kernel.org/pub/scm/linux/kernel/git/qcom/linux tags/qcom-drivers-for-5.9
 
 arm/defconfig
 	renesas/defconfig
@@ -123,6 +133,17 @@ arm/newsoc
 		MAINTAINERS: Add maintainers for Keem Bay SoC
 		arm64: dts: keembay: Add device tree for Keem Bay SoC
 		arm64: dts: keembay: Add device tree for Keem Bay EVM board
+		dt-bindings: arm: sparx5: Add documentation for Microchip Sparx5 SoC
+		arm64: sparx5: Add support for Microchip 2xA53 SoC
+		arm64: dts: sparx5: Add basic cpu support
+		arm64: dts: sparx5: Add pinctrl support
+		dt-bindings: clock: sparx5: Add Sparx5 SoC DPLL clock
+		dt-bindings: clock: sparx5: Add bindings include file
+		clk: sparx5: Add Sparx5 SoC DPLL clock driver
+		arm64: dts: sparx5: Add Sparx5 SoC DPLL clock
+		arm64: dts: sparx5: Add i2c devices, i2c muxes
+
+arm/late
 
 arm/fixes
 	sunxi/fixes
