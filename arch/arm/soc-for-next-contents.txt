@@ -81,6 +81,10 @@ arm/dt
 		ARM: dts: mmp2-olpc-xo-1-75: Enable the GPU
 		ARM: dts: mmp3: Add the GPU
 		ARM: dts: mmp3-dell-ariel: Enable the GPU
+	rockchip/dt64
+		git://git.kernel.org/pub/scm/linux/kernel/git/mmind/linux-rockchip tags/v5.9-rockchip-dts64-1
+	rockchip/dt
+		git://git.kernel.org/pub/scm/linux/kernel/git/mmind/linux-rockchip tags/v5.9-rockchip-dts32-1
 
 arm/drivers
 	drivers/soc-attr
