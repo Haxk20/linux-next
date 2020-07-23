@@ -30,6 +30,7 @@
 #include <net/netfilter/nf_conntrack_core.h>
 #include <net/netfilter/nf_conntrack_zones.h>
 #include <net/netfilter/nf_conntrack_helper.h>
+#include <net/netfilter/nf_conntrack_acct.h>
 #include <net/netfilter/ipv6/nf_defrag_ipv6.h>
 #include <uapi/linux/netfilter/nf_nat.h>
 
@@ -539,6 +540,7 @@ static bool tcf_ct_flow_table_lookup(struct tcf_ct_params *p,
 	flow_offload_refresh(nf_ft, flow);
 	nf_conntrack_get(&ct->ct_general);
 	nf_ct_set(skb, ct, ctinfo);
+	nf_ct_acct_update(ct, dir, skb->len);
 
 	return true;
 }
@@ -622,7 +624,7 @@ static u8 tcf_ct_skb_nf_family(struct sk_buff *skb)
 {
 	u8 family = NFPROTO_UNSPEC;
 
-	switch (skb->protocol) {
+	switch (skb_protocol(skb, true)) {
 	case htons(ETH_P_IP):
 		family = NFPROTO_IPV4;
 		break;
@@ -746,6 +748,7 @@ static int ct_nat_execute(struct sk_buff *skb, struct nf_conn *ct,
 			  const struct nf_nat_range2 *range,
 			  enum nf_nat_manip_type maniptype)
 {
+	__be16 proto = skb_protocol(skb, true);
 	int hooknum, err = NF_ACCEPT;
 
 	/* See HOOK2MANIP(). */
@@ -757,14 +760,13 @@ static int ct_nat_execute(struct sk_buff *skb, struct nf_conn *ct,
 	switch (ctinfo) {
 	case IP_CT_RELATED:
 	case IP_CT_RELATED_REPLY:
-		if (skb->protocol == htons(ETH_P_IP) &&
+		if (proto == htons(ETH_P_IP) &&
 		    ip_hdr(skb)->protocol == IPPROTO_ICMP) {
 			if (!nf_nat_icmp_reply_translation(skb, ct, ctinfo,
 							   hooknum))
 				err = NF_DROP;
 			goto out;
-		} else if (IS_ENABLED(CONFIG_IPV6) &&
-			   skb->protocol == htons(ETH_P_IPV6)) {
+		} else if (IS_ENABLED(CONFIG_IPV6) && proto == htons(ETH_P_IPV6)) {
 			__be16 frag_off;
 			u8 nexthdr = ipv6_hdr(skb)->nexthdr;
 			int hdrlen = ipv6_skip_exthdr(skb,
@@ -922,6 +924,8 @@ static int tcf_ct_act(struct sk_buff *skb, const struct tc_action *a,
 	clear = p->ct_action & TCA_CT_ACT_CLEAR;
 	force = p->ct_action & TCA_CT_ACT_FORCE;
 	tmpl = p->tmpl;
+
+	tcf_lastuse_update(&c->tcf_tm);
 
 	if (clear) {
 		ct = nf_ct_get(skb, &ctinfo);
@@ -1541,17 +1545,6 @@ static void __exit ct_cleanup_module(void)
 	destroy_workqueue(act_ct_wq);
 }
 
-void tcf_ct_flow_table_restore_skb(struct sk_buff *skb, unsigned long cookie)
-{
-	enum ip_conntrack_info ctinfo = cookie & NFCT_INFOMASK;
-	struct nf_conn *ct;
-
-	ct = (struct nf_conn *)(cookie & NFCT_PTRMASK);
-	nf_conntrack_get(&ct->ct_general);
-	nf_ct_set(skb, ct, ctinfo);
-}
-EXPORT_SYMBOL_GPL(tcf_ct_flow_table_restore_skb);
-
 module_init(ct_init_module);
 module_exit(ct_cleanup_module);
 MODULE_AUTHOR("Paul Blakey <paulb@mellanox.com>");
@@ -1559,4 +1552,3 @@ MODULE_AUTHOR("Yossi Kuperman <yossiku@mellanox.com>");
 MODULE_AUTHOR("Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>");
 MODULE_DESCRIPTION("Connection tracking action");
 MODULE_LICENSE("GPL v2");
-
