@@ -375,6 +375,15 @@ int dccp_ioctl(struct sock *sk, int cmd, unsigned long arg)
 		goto out;
 
 	switch (cmd) {
+	case SIOCOUTQ: {
+		int amount = sk_wmem_alloc_get(sk);
+		/* Using sk_wmem_alloc here because sk_wmem_queued is not used by DCCP and
+		 * always 0, comparably to UDP.
+		 */
+
+		rc = put_user(amount, (int __user *)arg);
+	}
+		break;
 	case SIOCINQ: {
 		struct sk_buff *skb;
 		unsigned long amount = 0;
@@ -575,19 +584,6 @@ int dccp_setsockopt(struct sock *sk, int level, int optname,
 
 EXPORT_SYMBOL_GPL(dccp_setsockopt);
 
-#ifdef CONFIG_COMPAT
-int compat_dccp_setsockopt(struct sock *sk, int level, int optname,
-			   char __user *optval, unsigned int optlen)
-{
-	if (level != SOL_DCCP)
-		return inet_csk_compat_setsockopt(sk, level, optname,
-						  optval, optlen);
-	return do_dccp_setsockopt(sk, level, optname, optval, optlen);
-}
-
-EXPORT_SYMBOL_GPL(compat_dccp_setsockopt);
-#endif
-
 static int dccp_getsockopt_service(struct sock *sk, int len,
 				   __be32 __user *optval,
 				   int __user *optlen)
@@ -695,19 +691,6 @@ int dccp_getsockopt(struct sock *sk, int level, int optname,
 }
 
 EXPORT_SYMBOL_GPL(dccp_getsockopt);
-
-#ifdef CONFIG_COMPAT
-int compat_dccp_getsockopt(struct sock *sk, int level, int optname,
-			   char __user *optval, int __user *optlen)
-{
-	if (level != SOL_DCCP)
-		return inet_csk_compat_getsockopt(sk, level, optname,
-						  optval, optlen);
-	return do_dccp_getsockopt(sk, level, optname, optval, optlen);
-}
-
-EXPORT_SYMBOL_GPL(compat_dccp_getsockopt);
-#endif
 
 static int dccp_msghdr_parse(struct msghdr *msg, struct sk_buff *skb)
 {
