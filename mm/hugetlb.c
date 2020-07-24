@@ -29,8 +29,10 @@
 #include <linux/numa.h>
 #include <linux/llist.h>
 #include <linux/cma.h>
+#include <linux/migrate.h>
 
 #include <asm/page.h>
+#include <asm/pgalloc.h>
 #include <asm/tlb.h>
 
 #include <linux/io.h>
@@ -45,7 +47,10 @@ int hugetlb_max_hstate __read_mostly;
 unsigned int default_hstate_idx;
 struct hstate hstates[HUGE_MAX_HSTATE];
 
+#ifdef CONFIG_CMA
 static struct cma *hugetlb_cma[MAX_NUMNODES];
+#endif
+static unsigned long hugetlb_cma_size __initdata;
 
 /*
  * Minimum page order among possible hugepage sizes, set to a proper value
@@ -1208,36 +1213,35 @@ static int hstate_next_node_to_free(struct hstate *h, nodemask_t *nodes_allowed)
 		((node = hstate_next_node_to_free(hs, mask)) || 1);	\
 		nr_nodes--)
 
-#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
-static void destroy_compound_gigantic_page(struct page *page,
-					unsigned int order)
+static inline bool PageHugePoisoned(struct page *page)
 {
-	int i;
-	int nr_pages = 1 << order;
-	struct page *p = page + 1;
+	if (!PageHuge(page))
+		return false;
 
-	atomic_set(compound_mapcount_ptr(page), 0);
-	if (hpage_pincount_available(page))
-		atomic_set(compound_pincount_ptr(page), 0);
-
-	for (i = 1; i < nr_pages; i++, p = mem_map_next(p, page, i)) {
-		clear_compound_head(p);
-		set_page_refcounted(p);
-	}
-
-	set_compound_order(page, 0);
-	__ClearPageHead(page);
+	return (unsigned long)page[3].mapping == -1U;
 }
 
+static inline void SetPageHugePoisoned(struct page *page)
+{
+	page[3].mapping = (void *)-1U;
+}
+
+static inline void ClearPageHugePoisoned(struct page *page)
+{
+	page[3].mapping = NULL;
+}
+
+#ifdef CONFIG_ARCH_HAS_GIGANTIC_PAGE
 static void free_gigantic_page(struct page *page, unsigned int order)
 {
 	/*
 	 * If the page isn't allocated using the cma allocator,
 	 * cma_release() returns false.
 	 */
-	if (IS_ENABLED(CONFIG_CMA) &&
-	    cma_release(hugetlb_cma[page_to_nid(page)], page, 1 << order))
+#ifdef CONFIG_CMA
+	if (cma_release(hugetlb_cma[page_to_nid(page)], page, 1 << order))
 		return;
+#endif
 
 	free_contig_range(page_to_pfn(page), 1 << order);
 }
@@ -1248,7 +1252,8 @@ static struct page *alloc_gigantic_page(struct hstate *h, gfp_t gfp_mask,
 {
 	unsigned long nr_pages = 1UL << huge_page_order(h);
 
-	if (IS_ENABLED(CONFIG_CMA)) {
+#ifdef CONFIG_CMA
+	{
 		struct page *page;
 		int node;
 
@@ -1262,6 +1267,7 @@ static struct page *alloc_gigantic_page(struct hstate *h, gfp_t gfp_mask,
 				return page;
 		}
 	}
+#endif
 
 	return alloc_contig_pages(nr_pages, gfp_mask, nid, nodemask);
 }
@@ -1283,13 +1289,37 @@ static struct page *alloc_gigantic_page(struct hstate *h, gfp_t gfp_mask,
 	return NULL;
 }
 static inline void free_gigantic_page(struct page *page, unsigned int order) { }
-static inline void destroy_compound_gigantic_page(struct page *page,
-						unsigned int order) { }
 #endif
+
+static void destroy_compound_gigantic_page(struct hstate *h, struct page *page,
+					   unsigned int order)
+{
+	int i;
+	int nr_pages = 1 << order;
+	struct page *p = page + 1;
+
+	atomic_set(compound_mapcount_ptr(page), 0);
+	if (hpage_pincount_available(page))
+		atomic_set(compound_pincount_ptr(page), 0);
+
+	for (i = 1; i < nr_pages; i++, p = mem_map_next(p, page, i)) {
+		if (!hstate_is_gigantic(h))
+			 p->mapping = NULL;
+		clear_compound_head(p);
+		set_page_refcounted(p);
+	}
+
+	if (PageHugePoisoned(page))
+		ClearPageHugePoisoned(page);
+	set_compound_order(page, 0);
+	__ClearPageHead(page);
+}
 
 static void update_and_free_page(struct hstate *h, struct page *page)
 {
 	int i;
+	bool poisoned = PageHugePoisoned(page);
+	unsigned int order = huge_page_order(h);
 
 	if (hstate_is_gigantic(h) && !gigantic_page_runtime_supported())
 		return;
@@ -1312,11 +1342,21 @@ static void update_and_free_page(struct hstate *h, struct page *page)
 		 * we might block in free_gigantic_page().
 		 */
 		spin_unlock(&hugetlb_lock);
-		destroy_compound_gigantic_page(page, huge_page_order(h));
-		free_gigantic_page(page, huge_page_order(h));
+		destroy_compound_gigantic_page(h, page, order);
+		free_gigantic_page(page, order);
 		spin_lock(&hugetlb_lock);
 	} else {
-		__free_pages(page, huge_page_order(h));
+		if (unlikely(poisoned)) {
+			/*
+			 * If the hugepage is poisoned, do as we do for
+			 * gigantic pages and free the pages as order-0.
+			 * free_pages_prepare will skip over the poisoned ones.
+			 */
+			destroy_compound_gigantic_page(h, page, order);
+			free_contig_range(page_to_pfn(page), 1 << order);
+		} else {
+			__free_pages(page, huge_page_order(h));
+		}
 	}
 }
 
@@ -1425,6 +1465,11 @@ static void __free_huge_page(struct page *page)
 					  pages_per_huge_page(h), page);
 	if (restore_reserve)
 		h->resv_huge_pages++;
+
+	if (PageHugePoisoned(page)) {
+		spin_unlock(&hugetlb_lock);
+		return;
+	}
 
 	if (PageHugeTemporary(page)) {
 		list_del(&page->lru);
@@ -2571,7 +2616,7 @@ static void __init hugetlb_hstate_alloc_pages(struct hstate *h)
 
 	for (i = 0; i < h->max_huge_pages; ++i) {
 		if (hstate_is_gigantic(h)) {
-			if (IS_ENABLED(CONFIG_CMA) && hugetlb_cma[0]) {
+			if (hugetlb_cma_size) {
 				pr_warn_once("HugeTLB: hugetlb_cma is enabled, skip boot time allocation\n");
 				break;
 			}
@@ -5627,6 +5672,9 @@ void move_hugetlb_state(struct page *oldpage, struct page *newpage, int reason)
 	hugetlb_cgroup_migrate(oldpage, newpage);
 	set_page_owner_migrate_reason(newpage, reason);
 
+	if (reason == MR_MEMORY_FAILURE)
+		SetPageHugePoisoned(oldpage);
+
 	/*
 	 * transfer temporary state of the new huge page. This is
 	 * reverse to other transitions because the newpage is going to
@@ -5654,7 +5702,6 @@ void move_hugetlb_state(struct page *oldpage, struct page *newpage, int reason)
 }
 
 #ifdef CONFIG_CMA
-static unsigned long hugetlb_cma_size __initdata;
 static bool cma_reserve_called __initdata;
 
 static int __init cmdline_parse_hugetlb_cma(char *p)
@@ -5665,6 +5712,13 @@ static int __init cmdline_parse_hugetlb_cma(char *p)
 
 early_param("hugetlb_cma", cmdline_parse_hugetlb_cma);
 
+/*
+ * hugetlb_cma_reserve() - reserve CMA for gigantic pages on nodes with memory
+ *
+ * must be called after free_area_init() that updates N_MEMORY via node_set_state().
+ * hugetlb_cma_reserve() scans over N_MEMORY nodemask and hence expects the platforms
+ * to have initialized N_MEMORY state.
+ */
 void __init hugetlb_cma_reserve(int order)
 {
 	unsigned long size, reserved, per_node;
@@ -5685,19 +5739,21 @@ void __init hugetlb_cma_reserve(int order)
 	 * If 3 GB area is requested on a machine with 4 numa nodes,
 	 * let's allocate 1 GB on first three nodes and ignore the last one.
 	 */
-	per_node = DIV_ROUND_UP(hugetlb_cma_size, nr_online_nodes);
+	per_node = DIV_ROUND_UP(hugetlb_cma_size, num_node_state(N_MEMORY));
 	pr_info("hugetlb_cma: reserve %lu MiB, up to %lu MiB per node\n",
 		hugetlb_cma_size / SZ_1M, per_node / SZ_1M);
 
 	reserved = 0;
-	for_each_node_state(nid, N_ONLINE) {
+	for_each_node_state(nid, N_MEMORY) {
 		int res;
+		char name[20];
 
 		size = min(per_node, hugetlb_cma_size - reserved);
 		size = round_up(size, PAGE_SIZE << order);
 
+		snprintf(name, 20, "hugetlb%d", nid);
 		res = cma_declare_contiguous_nid(0, size, 0, PAGE_SIZE << order,
-						 0, false, "hugetlb",
+						 0, false, name,
 						 &hugetlb_cma[nid], nid);
 		if (res) {
 			pr_warn("hugetlb_cma: reservation failed: err %d, node %d",
