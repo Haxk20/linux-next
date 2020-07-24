@@ -1376,7 +1376,7 @@ static int dm_late_init(void *handle)
 	unsigned int linear_lut[16];
 	int i;
 	struct dmcu *dmcu = NULL;
-	bool ret;
+	bool ret = true;
 
 	if (!adev->dm.fw_dmcu && !adev->dm.dmub_fw)
 		return detect_mst_link_for_all_connectors(adev->ddev);
@@ -1397,7 +1397,14 @@ static int dm_late_init(void *handle)
 	 */
 	params.min_abm_backlight = 0x28F;
 
-	ret = dmcu_load_iram(dmcu, params);
+	/* In the case where abm is implemented on dmcub,
+	 * dmcu object will be null.
+	 * ABM 2.4 and up are implemented on dmcub.
+	 */
+	if (dmcu)
+		ret = dmcu_load_iram(dmcu, params);
+	else if (adev->dm.dc->ctx->dmub_srv)
+		ret = dmub_init_abm_config(adev->dm.dc->res_pool->abm, params);
 
 	if (!ret)
 		return -EINVAL;
@@ -1486,22 +1493,11 @@ static int amdgpu_dm_smu_write_watermarks_table(struct amdgpu_device *adev)
 		return 0;
 	}
 
-	mutex_lock(&smu->mutex);
-
-	/* pass data to smu controller */
-	if ((smu->watermarks_bitmap & WATERMARKS_EXIST) &&
-			!(smu->watermarks_bitmap & WATERMARKS_LOADED)) {
-		ret = smu_write_watermarks_table(smu);
-
-		if (ret) {
-			mutex_unlock(&smu->mutex);
-			DRM_ERROR("Failed to update WMTABLE!\n");
-			return ret;
-		}
-		smu->watermarks_bitmap |= WATERMARKS_LOADED;
+	ret = smu_write_watermarks_table(smu);
+	if (ret) {
+		DRM_ERROR("Failed to update WMTABLE!\n");
+		return ret;
 	}
-
-	mutex_unlock(&smu->mutex);
 
 	return 0;
 }
@@ -3434,21 +3430,12 @@ static bool modeset_required(struct drm_crtc_state *crtc_state,
 			     struct dc_stream_state *new_stream,
 			     struct dc_stream_state *old_stream)
 {
-	if (!drm_atomic_crtc_needs_modeset(crtc_state))
-		return false;
-
-	if (!crtc_state->enable)
-		return false;
-
-	return crtc_state->active;
+	return crtc_state->active && drm_atomic_crtc_needs_modeset(crtc_state);
 }
 
 static bool modereset_required(struct drm_crtc_state *crtc_state)
 {
-	if (!drm_atomic_crtc_needs_modeset(crtc_state))
-		return false;
-
-	return !crtc_state->enable || !crtc_state->active;
+	return !crtc_state->active && drm_atomic_crtc_needs_modeset(crtc_state);
 }
 
 static void amdgpu_dm_encoder_destroy(struct drm_encoder *encoder)
@@ -4546,7 +4533,7 @@ create_stream_for_sink(struct amdgpu_dm_connector *aconnector,
 #if defined(CONFIG_DRM_AMD_DC_DCN)
 		dc_dsc_parse_dsc_dpcd(aconnector->dc_link->ctx->dc,
 				      aconnector->dc_link->dpcd_caps.dsc_caps.dsc_basic_caps.raw,
-				      aconnector->dc_link->dpcd_caps.dsc_caps.dsc_ext_caps.raw,
+				      aconnector->dc_link->dpcd_caps.dsc_caps.dsc_branch_decoder_caps.raw,
 				      &dsc_caps);
 #endif
 		link_bandwidth_kbps = dc_link_bandwidth_kbps(aconnector->dc_link,
@@ -6235,7 +6222,7 @@ void amdgpu_dm_connector_init_helper(struct amdgpu_display_manager *dm,
 	aconnector->base.state->max_requested_bpc = aconnector->base.state->max_bpc;
 
 	if (connector_type == DRM_MODE_CONNECTOR_eDP &&
-	    dc_is_dmcu_initialized(adev->dm.dc)) {
+	    (dc_is_dmcu_initialized(adev->dm.dc) || adev->dm.dc->ctx->dmub_srv)) {
 		drm_object_attach_property(&aconnector->base.base,
 				adev->mode_info.abm_level_property, 0);
 	}
@@ -8036,8 +8023,7 @@ skip_modeset:
 	 * We want to do dc stream updates that do not require a
 	 * full modeset below.
 	 */
-	if (!(enable && aconnector && new_crtc_state->enable &&
-	      new_crtc_state->active))
+	if (!(enable && aconnector && new_crtc_state->active))
 		return 0;
 	/*
 	 * Given above conditions, the dc state cannot be NULL because:
@@ -8471,7 +8457,7 @@ cleanup:
 	*out_type = update_type;
 	return ret;
 }
-
+#if defined(CONFIG_DRM_AMD_DC_DCN)
 static int add_affected_mst_dsc_crtcs(struct drm_atomic_state *state, struct drm_crtc *crtc)
 {
 	struct drm_connector *connector;
@@ -8494,6 +8480,7 @@ static int add_affected_mst_dsc_crtcs(struct drm_atomic_state *state, struct drm
 
 	return drm_dp_mst_add_affected_dsc_crtcs(state, &aconnector->mst_port->mst_mgr);
 }
+#endif
 
 /**
  * amdgpu_dm_atomic_check() - Atomic check implementation for AMDgpu DM.
@@ -8547,6 +8534,7 @@ static int amdgpu_dm_atomic_check(struct drm_device *dev,
 	if (ret)
 		goto fail;
 
+#if defined(CONFIG_DRM_AMD_DC_DCN)
 	if (adev->asic_type >= CHIP_NAVI10) {
 		for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
 			if (drm_atomic_crtc_needs_modeset(new_crtc_state)) {
@@ -8556,7 +8544,7 @@ static int amdgpu_dm_atomic_check(struct drm_device *dev,
 			}
 		}
 	}
-
+#endif
 	for_each_oldnew_crtc_in_state(state, crtc, old_crtc_state, new_crtc_state, i) {
 		if (!drm_atomic_crtc_needs_modeset(new_crtc_state) &&
 		    !new_crtc_state->color_mgmt_changed &&
